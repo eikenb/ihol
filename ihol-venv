@@ -1,0 +1,15 @@
+#!/bin/sh
+
+if [ ! -e ~/scratch/o365/venv/bin/activate ]
+then
+    mkdir -p ~/scratch/o365
+    cd ~/scratch/o365
+    pyvenv --system-site-packages venv
+    pip install -U o365
+fi
+
+cd $(dirname $0)
+
+. ~/scratch/o365/venv/bin/activate
+./ihol.py "$@"
+
