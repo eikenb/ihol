@@ -44,8 +44,8 @@ def remindOut(cal):
         print(event2Remind(e))
 
 def showBodies(cal, args):
-    five_days = time.gmtime(time.time() + (3600*24*args.bodies))
-    cal.getEvents(end=time.strftime(cal.time_string, five_days))
+    n_days = time.gmtime(time.time() + (3600*24*args.bodies))
+    cal.getEvents(end=time.strftime(cal.time_string, n_days))
     for e in reversed(cal.events):
         if "DevOps Standup" in e.getSubject(): continue
         print("-"*70)
