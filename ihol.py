@@ -104,7 +104,7 @@ def main():
     cal = s.calendars[0]
     if args.remind:
         remindOut(cal)
-    if args.ical:
+    elif args.ical:
         icalOut(cal)
     else:
         showBodies(cal, args)
