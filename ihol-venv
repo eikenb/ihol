@@ -6,6 +6,7 @@ then
     cd ~/scratch/o365
     pyvenv --system-site-packages venv
     pip install -U o365
+    pip install -U icalendar
 fi
 
 cd $(dirname $0)

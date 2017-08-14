@@ -8,8 +8,9 @@ from datetime import datetime
 from dateutil import tz
 from bs4 import BeautifulSoup
 
+import icalendar as ical
 import O365 as o365
-
+# https://github.com/Narcolapser/python-o365
 
 def get_args(args):
     """ Setup and parse options.
@@ -18,12 +19,15 @@ def get_args(args):
             description='I Hate OutLook',
             epilog='** Password read from STDIN.')
     parser.add_argument('email', type=str, help='Email address of user.')
-    parser.add_argument('-r', '--remind', action='store_true', default=True,
-            help='Remind formatted calendar entries to stdout.')
-    parser.add_argument('-b', '--bodies', action='store_true',
-            help='Print bodies of calendar to stdout.')
     parser.add_argument('-n', '--num-bodies', type=int, default=3, metavar='N',
             help='Output bodies for N days (default 3).')
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument('-b', '--bodies', action='store_true',
+            help='Print bodies of calendar to stdout.')
+    output.add_argument('-i', '--ical', action='store_true',
+            help='Ical formatted entries to stdout.')
+    output.add_argument('-r', '--remind', action='store_true',
+            help='Remind formatted calendar entries to stdout.')
     return parser.parse_args(args)
 
 def read_pass(stdin=sys.stdin):
@@ -43,6 +47,23 @@ def remindOut(cal):
     for e in cal.events:
         print(event2Remind(e))
 
+def event2Ical(ev):
+    c = ical.Calendar()
+    c.add('version', '2.0')
+    e = ical.Event()
+    e.add('dtstart', utc2local(ev.getStart()))
+    e.add('dtend', utc2local(ev.getEnd()))
+    e.add('summary', ev.getSubject())
+    e.add('description', "\n".join(paragraphs(ev)))
+    c.add_component(e)
+    return c.to_ical().decode("utf-8")
+
+def icalOut(cal):
+    cal.getEvents()
+    for e in cal.events:
+        print(event2Ical(e))
+        break
+
 def showBodies(cal, args):
     n_days = time.gmtime(time.time() + (3600*24*args.bodies))
     cal.getEvents(end=time.strftime(cal.time_string, n_days))
@@ -56,11 +77,16 @@ hs = fg % 9
 hd = fg % 7
 cl = "\x1b[0m"
 def formatBody(ev):
-    soup = BeautifulSoup(ev.getBody(), "html.parser")
-    paras = [p.get_text().strip() for p in soup.find_all("p")]
+    paras = paragraphs(ev)
     start = utc2local(ev.getStart()).strftime("%b %d %Y AT %H:%M")
     return ["%s-- %s --%s" % (hs, ev.getSubject(), cl),
             "%s[%s]%s\n" % (hd, start, cl), *["%s\n" % p for p in paras if p]]
+
+def paragraphs(ev):
+    """ Return list of text paragraphs in body of event.
+    """
+    soup = BeautifulSoup(ev.getBody(), "html.parser")
+    return [p.get_text().strip() for p in soup.find_all("p")]
 
 def utc2local(t_st):
     """ Times are UTC but timezone isn't set, so we need to set and convert.
@@ -76,10 +102,12 @@ def main():
     s = o365.Schedule((args.email, passwd))
     s.getCalendars()
     cal = s.calendars[0]
-    if args.bodies:
-        showBodies(cal, args)
-    else:
+    if args.remind:
         remindOut(cal)
+    if args.ical:
+        icalOut(cal)
+    else:
+        showBodies(cal, args)
 
 
 if __name__ == '__main__':
