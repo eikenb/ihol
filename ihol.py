@@ -22,8 +22,8 @@ def get_args(args):
     parser.add_argument('-n', '--num-bodies', type=int, default=3, metavar='N',
             help='Output bodies for N days (default 3).')
     output = parser.add_mutually_exclusive_group()
-    output.add_argument('-b', '--bodies', action='store_true',
-            help='Print bodies of calendar to stdout.')
+    output.add_argument('-b', '--bodies', action='count', default=1,
+            help='Print event bodies for today to stdout (+1 day for each b).')
     output.add_argument('-i', '--ical', action='store_true',
             help='Ical formatted entries to stdout.')
     output.add_argument('-r', '--remind', action='store_true',
@@ -66,7 +66,9 @@ def icalOut(cal):
 
 def showBodies(cal, args):
     n_days = time.gmtime(time.time() + (3600*24*args.bodies))
-    cal.getEvents(end=time.strftime(cal.time_string, n_days))
+    cal.getEvents(
+            start=time.strftime(cal.time_string, time.gmtime(time.time())),
+            end=time.strftime(cal.time_string, n_days))
     for e in reversed(cal.events):
         if "DevOps Standup" in e.getSubject(): continue
         print("-"*70)
