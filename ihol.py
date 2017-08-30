@@ -23,8 +23,8 @@ def get_args(args):
             description='I Hate OutLook',
             epilog='** Password read from STDIN.')
     parser.add_argument('email', type=str, help='Email address of user.')
-    parser.add_argument('-n', '--num-bodies', type=int, default=3, metavar='N',
-            help='Output bodies for N days (default 3).')
+    parser.add_argument('-n', '--next', action='store_true',
+            help='Output bodies for next event.')
     output = parser.add_mutually_exclusive_group()
     output.add_argument('-b', '--bodies', action='count', default=1,
             help='Print event bodies for today to stdout (+1 day for each b).')
@@ -68,8 +68,9 @@ def icalOut(cal):
         print(event2Ical(e))
         break
 
-def showBodies(cal, args):
-    n_days = time.gmtime(time.time() + (3600*24*args.bodies))
+def showBodies(cal, args, next_only=False):
+    n = 1 if next_only else args.bodies
+    n_days = time.gmtime(time.time() + (3600*24*n))
     cal.getEvents(
             start=time.strftime(cal.time_string, time.gmtime(time.time())),
             end=time.strftime(cal.time_string, n_days))
@@ -77,6 +78,7 @@ def showBodies(cal, args):
         if e.getSubject() in skip_subjects: continue
         print("-"*70)
         print("\n".join(formatBody(e)))
+        if next_only: return
 
 fg = "\x1b[38;5;%dm"
 hs = fg % 9
@@ -112,6 +114,8 @@ def main():
         remindOut(cal)
     elif args.ical:
         icalOut(cal)
+    elif args.next:
+        showBodies(cal, args, next_only=True)
     else:
         showBodies(cal, args)
 
