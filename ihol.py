@@ -12,6 +12,10 @@ import icalendar as ical
 import O365 as o365
 # https://github.com/Narcolapser/python-o365
 
+# list of event subjects to skip
+skip_subjects = ["DevOps Standup"]
+# probably should go in a config or something
+
 def get_args(args):
     """ Setup and parse options.
     """
@@ -70,7 +74,7 @@ def showBodies(cal, args):
             start=time.strftime(cal.time_string, time.gmtime(time.time())),
             end=time.strftime(cal.time_string, n_days))
     for e in reversed(cal.events):
-        if "DevOps Standup" in e.getSubject(): continue
+        if e.getSubject() in skip_subjects: continue
         print("-"*70)
         print("\n".join(formatBody(e)))
 
