@@ -8,6 +8,7 @@ then
     . ~/scratch/o365/venv/bin/activate
     pip install -U o365
     pip install -U icalendar
+    pip install -U pylint
 fi
 
 cd $(dirname $0)
