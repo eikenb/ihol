@@ -42,7 +42,7 @@ def read_pass(stdin=sys.stdin):
 def event2Remind(ev):
     rem = ['REM']
     start = utc2local(ev.getStart())
-    rem.append(start.strftime("%b %d %Y AT %H:%M +10"))
+    rem.append(start.strftime("%b %d %Y AT %H:%M +10 MSG"))
     rem.append("%%\"%s%%\"" % ev.getSubject())
     return " ".join(rem)
 
