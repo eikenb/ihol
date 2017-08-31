@@ -82,13 +82,18 @@ def showBodies(cal, args, next_only=False):
 
 fg = "\x1b[38;5;%dm"
 hs = fg % 9
-hd = fg % 7
+hd = fg % 15
 cl = "\x1b[0m"
 def formatBody(ev):
     paras = paragraphs(ev)
     start = utc2local(ev.getStart()).strftime("%b %d %Y AT %H:%M")
-    return ["%s-- %s --%s" % (hs, ev.getSubject(), cl),
-            "%s[%s]%s\n" % (hd, start, cl), *["%s\n" % p for p in paras if p]]
+    location = ev.getLocation().get('DisplayName')
+    body = ["%s-- %s --%s" % (hs, ev.getSubject(), cl),
+            "%s[%s]%s" % (hd, start, cl)]
+    if location:
+        body.append("%s[%s]%s\n" % (hd, location, cl))
+    body.extend(["%s\n" % p for p in paras if p])
+    return body
 
 def paragraphs(ev):
     """ Return list of text paragraphs in body of event.
