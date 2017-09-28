@@ -78,7 +78,8 @@ def showBodies(cal, args, next_only=False):
     cal.getEvents(
             start=time.strftime(cal.time_string, time.gmtime(time.time())),
             end=time.strftime(cal.time_string, n_days))
-    events = cal.events if next_only else reversed(cal.events)
+    events = sorted(cal.events, key=lambda e: e.getStart(),
+            reverse=(not next_only))
     for e in events:
         if e.getSubject() in skip_subjects: continue
         print("-"*70)
