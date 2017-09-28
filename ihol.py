@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import re
 import sys
 import time
 
@@ -58,7 +59,7 @@ def event2Ical(ev):
     e.add('dtstart', utc2local(ev.getStart()))
     e.add('dtend', utc2local(ev.getEnd()))
     e.add('summary', ev.getSubject())
-    e.add('description', "\n".join(paragraphs(ev)))
+    e.add('description', bodyText(ev))
     c.add_component(e)
     return c.to_ical().decode("utf-8")
 
@@ -86,21 +87,23 @@ hs = fg % 9
 hd = fg % 15
 cl = "\x1b[0m"
 def formatBody(ev):
-    paras = paragraphs(ev)
     start = utc2local(ev.getStart()).strftime("%b %d %Y AT %H:%M")
     location = ev.getLocation().get('DisplayName')
     body = ["%s-- %s --%s" % (hs, ev.getSubject(), cl),
             "%s[%s]%s" % (hd, start, cl)]
     if location:
         body.append("%s[%s]%s\n" % (hd, location, cl))
-    body.extend(["%s\n" % p for p in paras if p])
+    body.append(bodyText(ev))
     return body
 
-def paragraphs(ev):
+def bodyText(ev):
     """ Return list of text paragraphs in body of event.
     """
     soup = BeautifulSoup(ev.getBody(), "html.parser")
-    return [p.get_text().strip() for p in soup.find_all("p")]
+    # strip out head, as comments in it cause issues
+    for h in soup.find_all("head"): h.extract()
+    #return soup.get_text("\n")
+    return re.sub("\\s{2,64}", "\n\n", soup.get_text("\n").strip())
 
 def utc2local(t_st):
     """ Times are UTC but timezone isn't set, so we need to set and convert.
