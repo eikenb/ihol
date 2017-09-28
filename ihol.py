@@ -33,6 +33,8 @@ def get_args(args):
             help='Ical formatted entries to stdout.')
     output.add_argument('-r', '--remind', action='store_true',
             help='Remind formatted calendar entries to stdout.')
+    parser.add_argument('-a', '--append', action='append',
+            help='Append to remind output.')
     return parser.parse_args(args)
 
 def read_pass(stdin=sys.stdin):
@@ -40,17 +42,18 @@ def read_pass(stdin=sys.stdin):
     """
     return stdin.readline()
 
-def event2Remind(ev):
+def event2Remind(ev, args):
     rem = ['REM']
     start = utc2local(ev.getStart())
     rem.append(start.strftime("%b %d %Y AT %H:%M +10 MSG"))
     rem.append("%%\"%s%%\"" % ev.getSubject())
+    if args.append: rem.extend(args.append)
     return " ".join(rem)
 
-def remindOut(cal):
+def remindOut(cal, args):
     cal.getEvents()
     for e in cal.events:
-        print(event2Remind(e))
+        print(event2Remind(e, args))
 
 def event2Ical(ev):
     c = ical.Calendar()
@@ -120,7 +123,7 @@ def main():
     s.getCalendars()
     cal = s.calendars[0]
     if args.remind:
-        remindOut(cal)
+        remindOut(cal, args)
     elif args.ical:
         icalOut(cal)
     elif args.next:
