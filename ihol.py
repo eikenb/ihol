@@ -37,6 +37,8 @@ def get_args(args):
             help='Append to remind output.')
     parser.add_argument('-c', '--count', action='store', default=60, type=int,
             help='Number of events to fetch.')
+    parser.add_argument('-d', '--days', action='store', default=60, type=int,
+            help='Days to look ahead for events (for remind/ical output).')
     return parser.parse_args(args)
 
 def read_pass(stdin=sys.stdin):
@@ -56,7 +58,11 @@ def event2Remind(ev, args):
     return " ".join(rem)
 
 def remindOut(cal, args):
-    cal.getEvents(eventCount=args.count)
+    n_days = time.gmtime(time.time() + (3600*24*args.days))
+    cal.getEvents(
+            start=time.strftime(cal.time_string, time.gmtime(time.time())),
+            end=time.strftime(cal.time_string, n_days),
+            eventCount=args.count)
     for e in cal.events:
         print(event2Remind(e, args))
 
@@ -72,7 +78,11 @@ def event2Ical(ev):
     return c.to_ical().decode("utf-8")
 
 def icalOut(cal, args):
-    cal.getEvents(eventCount=args.count)
+    n_days = time.gmtime(time.time() + (3600*24*args.days))
+    cal.getEvents(
+            start=time.strftime(cal.time_string, time.gmtime(time.time())),
+            end=time.strftime(cal.time_string, n_days),
+            eventCount=args.count)
     for e in cal.events:
         print(event2Ical(e))
 
