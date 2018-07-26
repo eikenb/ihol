@@ -35,6 +35,8 @@ def get_args(args):
             help='Remind formatted calendar entries to stdout.')
     parser.add_argument('-a', '--append', action='append',
             help='Append to remind output.')
+    parser.add_argument('-c', '--count', action='store', default=60, type=int,
+            help='Number of events to fetch.')
     return parser.parse_args(args)
 
 def read_pass(stdin=sys.stdin):
@@ -54,7 +56,7 @@ def event2Remind(ev, args):
     return " ".join(rem)
 
 def remindOut(cal, args):
-    cal.getEvents()
+    cal.getEvents(eventCount=args.count)
     for e in cal.events:
         print(event2Remind(e, args))
 
@@ -69,11 +71,10 @@ def event2Ical(ev):
     c.add_component(e)
     return c.to_ical().decode("utf-8")
 
-def icalOut(cal):
-    cal.getEvents()
+def icalOut(cal, args):
+    cal.getEvents(eventCount=args.count)
     for e in cal.events:
         print(event2Ical(e))
-        break
 
 def showBodies(cal, args, next_only=False):
     n = 1 if next_only else args.bodies
@@ -129,7 +130,7 @@ def main():
     if args.remind:
         remindOut(cal, args)
     elif args.ical:
-        icalOut(cal)
+        icalOut(cal, args)
     elif args.next:
         showBodies(cal, args, next_only=True)
     else:
