@@ -4,8 +4,8 @@ import argparse
 import re
 import sys
 import time
+import datetime
 
-from datetime import datetime
 from dateutil import tz
 from bs4 import BeautifulSoup
 
@@ -50,9 +50,14 @@ def event2Remind(ev, args):
     rem = ['REM']
     start = utc2local(ev.getStart())
     end = utc2local(ev.getEnd())
-    dur = str(end - start)
-    rem.append(start.strftime("%b %d %Y AT %H:%M +10"))
-    rem.append("DURATION " + dur[:dur.rfind(":")])
+    duration = end - start
+    if duration > datetime.timedelta(days=1):
+        rem.append(start.strftime("%b %d %Y THROUGH"))
+        rem.append(end.strftime("%b %d %Y"))
+    else:
+        rem.append(start.strftime("%b %d %Y AT %H:%M +10"))
+        dur = str(end - start)
+        rem.append("DURATION " + dur[:dur.rfind(":")])
     rem.append("MSG %%\"%s%%\"" % ev.getSubject())
     if args.append: rem.extend(args.append)
     return " ".join(rem)
@@ -127,7 +132,7 @@ def utc2local(t_st):
     """ Times are UTC but timezone isn't set, so we need to set and convert.
     """
     secs = time.mktime(t_st)
-    dt = datetime.fromtimestamp(secs)
+    dt = datetime.datetime.fromtimestamp(secs)
     dt = dt.replace(tzinfo=tz.tzutc())
     return dt.astimezone(tz.tzlocal())
 
