@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import datetime as dt
+import os
 import re
 import sys
 import time
-import datetime
 
 from dateutil import tz
 from bs4 import BeautifulSoup
@@ -22,8 +23,7 @@ def get_args(args):
     """
     parser = argparse.ArgumentParser(
             description='I Hate OutLook',
-            epilog='** Password read from STDIN.')
-    parser.add_argument('email', type=str, help='Email address of user.')
+            epilog='** Credentials read from environment variables.')
     parser.add_argument('-n', '--next', action='store_true',
             help='Output bodies for next event.')
     output = parser.add_mutually_exclusive_group()
@@ -35,72 +35,69 @@ def get_args(args):
             help='Remind formatted calendar entries to stdout.')
     parser.add_argument('-a', '--append', action='append',
             help='Append to remind output.')
-    parser.add_argument('-c', '--count', action='store', default=60, type=int,
+    parser.add_argument('-l', '--limit', action='store', default=60, type=int,
             help='Number of events to fetch.')
     parser.add_argument('-d', '--days', action='store', default=60, type=int,
             help='Days to look ahead for events (for remind/ical output).')
     return parser.parse_args(args)
 
-def read_pass(stdin=sys.stdin):
-    """ Read password from stdin.
+def get_credentials():
+    """ Read in credentials from environment variables.
     """
-    return stdin.readline()
+    creds = (os.getenv("IHOL_CLIENT_ID"), os.getenv("IHOL_CLIENT_SECRET"))
+    if not (creds[0] and creds[1]):
+        raise RuntimeError("Missing credentials")
+    return creds
 
 def event2Remind(ev, args):
     rem = ['REM']
-    start = utc2local(ev.getStart())
-    end = utc2local(ev.getEnd())
+    start = ev.start
+    end = ev.end
     duration = end - start
-    if duration > datetime.timedelta(days=1):
+    if duration > dt.timedelta(days=1):
         rem.append(start.strftime("%b %d %Y THROUGH"))
         rem.append(end.strftime("%b %d %Y"))
     else:
         rem.append(start.strftime("%b %d %Y AT %H:%M +10"))
         dur = str(end - start)
         rem.append("DURATION " + dur[:dur.rfind(":")])
-    rem.append("MSG %%\"%s%%\"" % ev.getSubject())
+    rem.append("MSG %%\"%s%%\"" % ev.subject)
     if args.append: rem.extend(args.append)
     return " ".join(rem)
 
+def calEvents(cal, days, limit):
+    n_days = dt.timedelta(days=days)
+    q = cal.new_query('start').greater_equal(dt.datetime.now())
+    q.chain('and').on_attribute('end').less_equal(dt.datetime.now() + n_days)
+    return cal.get_events(limit=limit, query=q)
+
 def remindOut(cal, args):
-    n_days = time.gmtime(time.time() + (3600*24*args.days))
-    cal.getEvents(
-            start=time.strftime(cal.time_string, time.gmtime(time.time())),
-            end=time.strftime(cal.time_string, n_days),
-            eventCount=args.count)
-    for e in cal.events:
+    events = calEvents(cal, args.days, args.limit)
+    for e in events:
         print(event2Remind(e, args))
+
+def icalOut(cal, args):
+    events = calEvents(cal, args.days, args.limit)
+    for e in events:
+        print(event2Ical(e))
 
 def event2Ical(ev):
     c = ical.Calendar()
     c.add('version', '2.0')
     e = ical.Event()
-    e.add('dtstart', utc2local(ev.getStart()))
-    e.add('dtend', utc2local(ev.getEnd()))
-    e.add('summary', ev.getSubject())
+    e.add('dtstart', ev.start)
+    e.add('dtend', ev.end)
+    e.add('summary', ev.subject)
     e.add('description', bodyText(ev))
     c.add_component(e)
     return c.to_ical().decode("utf-8")
 
-def icalOut(cal, args):
-    n_days = time.gmtime(time.time() + (3600*24*args.days))
-    cal.getEvents(
-            start=time.strftime(cal.time_string, time.gmtime(time.time())),
-            end=time.strftime(cal.time_string, n_days),
-            eventCount=args.count)
-    for e in cal.events:
-        print(event2Ical(e))
-
 def showBodies(cal, args, next_only=False):
     n = 1 if next_only else args.bodies
-    n_days = time.gmtime(time.time() + (3600*24*n))
-    cal.getEvents(
-            start=time.strftime(cal.time_string, time.gmtime(time.time())),
-            end=time.strftime(cal.time_string, n_days))
-    events = sorted(cal.events, key=lambda e: e.getStart(),
-            reverse=(not next_only))
+    events = calEvents(cal, n, args.limit)
+    events = sorted(events, key=lambda e: e.start, reverse=(not next_only))
     for e in events:
-        if e.getSubject() in skip_subjects: continue
+        if e.subject in skip_subjects: continue
         print("-"*70)
         print("\n".join(formatBody(e)))
         if next_only: return
@@ -110,38 +107,30 @@ hs = fg % 9
 hd = fg % 15
 cl = "\x1b[0m"
 def formatBody(ev):
-    start = utc2local(ev.getStart()).strftime("%b %d %Y AT %H:%M")
-    location = ev.getLocation().get('DisplayName')
-    body = ["%s-- %s --%s" % (hs, ev.getSubject(), cl),
+    start = ev.start.strftime("%b %d %Y AT %H:%M")
+    body = ["%s-- %s --%s" % (hs, ev.subject, cl),
             "%s[%s]%s" % (hd, start, cl)]
-    if location:
-        body.append("%s[%s]%s\n" % (hd, location, cl))
+    if ev.location:
+        body.append("%s[%s]%s\n" % (hd, ev.location, cl))
     body.append(bodyText(ev))
     return body
 
 def bodyText(ev):
     """ Return list of text paragraphs in body of event.
     """
-    soup = BeautifulSoup(ev.getBody(), "html.parser")
+    soup = BeautifulSoup(ev.body, "html.parser")
     # strip out head, as comments in it cause issues
     for h in soup.find_all("head"): h.extract()
     #return soup.get_text("\n")
     return re.sub("\\s{2,64}", "\n\n", soup.get_text("\n").strip())
 
-def utc2local(t_st):
-    """ Times are UTC but timezone isn't set, so we need to set and convert.
-    """
-    secs = time.mktime(t_st)
-    dt = datetime.datetime.fromtimestamp(secs)
-    dt = dt.replace(tzinfo=tz.tzutc())
-    return dt.astimezone(tz.tzlocal())
-
 def main():
     args = get_args(sys.argv[1:])
-    passwd = read_pass()
-    s = o365.Schedule((args.email, passwd))
-    s.getCalendars()
-    cal = s.calendars[0]
+    credentials = get_credentials()
+    scopes = ['calendar', 'basic']
+    acct = o365.Account(credentials, scopes=scopes)
+    s = acct.schedule()
+    cal = s.get_default_calendar()
     if args.remind:
         remindOut(cal, args)
     elif args.ical:

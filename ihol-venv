@@ -6,9 +6,11 @@ then
     cd ~/scratch/o365
     pyvenv --system-site-packages venv
     . ~/scratch/o365/venv/bin/activate
-    pip install -U o365
+    pip install -U wheel
+    pip install -U cffi
     pip install -U icalendar
     pip install -U pylint
+    pip install -U o365
 fi
 
 cd $(dirname $0)
