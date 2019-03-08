@@ -14,7 +14,11 @@ calendars. It will also output the full body of the next or more events.
 
 MS requires Oauth2 based login now which complicates setup a bit. You need a
 set of API credentials from MS and store them in environment variables;
-I. The software looks for them in the HOL_CLIENT_ID and IHOL_CLIENT_SECRET. The O365 library I use has this documented in their (README)[https://github.com/O365/python-o365#authentication], but the TLDR version is..
+
+The software looks for them in the HOL_CLIENT_ID and IHOL_CLIENT_SECRET. The
+O365 library I use has this documented in their
+[README](https://github.com/O365/python-o365#authentication), but the TLDR
+version is..
 
 0. Create your virtualenv as needed (see ./ihol-venv for guidance)
 1. Login at https://apps.dev.microsoft.com/ with your Office-365 creds.
@@ -32,4 +36,4 @@ I. The software looks for them in the HOL_CLIENT_ID and IHOL_CLIENT_SECRET. The 
 Note you need the IHOL_CLIENT_ID and IHOL_CLIENT_SECRET set for each run (even
 after the initial-auth.py run). You also need to keep the ./o365_token.txt file
 created by the initial-auth.py run. The token in that file will stay good
-indefinitely as long as you use it once ever 90 days.
+indefinitely as long as you use it once every 90 days.
