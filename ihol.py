@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import json
 
 from dateutil import tz
 from bs4 import BeautifulSoup
@@ -44,7 +45,13 @@ def get_args(args):
 def get_credentials():
     """ Read in credentials from environment variables.
     """
-    creds = (os.getenv("IHOL_CLIENT_ID"), os.getenv("IHOL_CLIENT_SECRET"))
+    
+    #creds = (os.getenv("IHOL_CLIENT_ID"), os.getenv("IHOL_CLIENT_SECRET"))
+    with open("conf.json","r") as f:
+        data=json.load(f)
+
+    creds = (data['ClientID'], data['ClientSecret'])
+    
     if not (creds[0] and creds[1]):
         raise RuntimeError("Missing credentials")
     return creds
