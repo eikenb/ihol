@@ -14,6 +14,6 @@ with open("conf.json","r") as f:
     data=json.load(f)
 
 creds = (data['ClientID'], data['ClientSecret'])
-acct = o365.Account(credentials=creds)
+acct = o365.Account(credentials=creds,tenant_id=data['TenantID'])
 scopes = ['calendar', 'basic']
 result = acct.authenticate(scopes=scopes,tenant_id=data['TenantID'])
