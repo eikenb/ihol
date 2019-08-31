@@ -43,8 +43,8 @@ def get_args(args):
     return parser.parse_args(args)
 
 def get_creds():
-    with open("conf.json","r") as f:
-        data=json.load(f)
+    with open("conf.json", "r") as f:
+        data = json.load(f)
     return data
 
 def event2Remind(ev, args):
@@ -124,10 +124,10 @@ def bodyText(ev):
 
 def main():
     args = get_args(sys.argv[1:])
-    creds=get_creds()
-    credentials = (creds['ClientID'],creds['ClientSecret'])
+    creds = get_creds()
+    credentials = (creds['ClientID'], creds['ClientSecret'])
     scopes = ['calendar', 'basic']
-    acct = o365.Account(credentials, scopes=scopes,tenant_id=creds['TenantID'])
+    acct = o365.Account(credentials, scopes=scopes, tenant_id=creds['TenantID'])
     s = acct.schedule()
     cal = s.get_default_calendar()
     if args.remind:
