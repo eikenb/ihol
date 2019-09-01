@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import json
 
 from dateutil import tz
 from bs4 import BeautifulSoup
@@ -41,13 +42,10 @@ def get_args(args):
             help='Days to look ahead for events (for remind/ical output).')
     return parser.parse_args(args)
 
-def get_credentials():
-    """ Read in credentials from environment variables.
-    """
-    creds = (os.getenv("IHOL_CLIENT_ID"), os.getenv("IHOL_CLIENT_SECRET"))
-    if not (creds[0] and creds[1]):
-        raise RuntimeError("Missing credentials")
-    return creds
+def get_creds():
+    with open("conf.json","r") as f:
+        data=json.load(f)
+    return data
 
 def event2Remind(ev, args):
     rem = ['REM']
@@ -126,9 +124,10 @@ def bodyText(ev):
 
 def main():
     args = get_args(sys.argv[1:])
-    credentials = get_credentials()
+    creds=get_creds()
+    credentials = (creds['ClientID'],creds['ClientSecret'])
     scopes = ['calendar', 'basic']
-    acct = o365.Account(credentials, scopes=scopes)
+    acct = o365.Account(credentials, scopes=scopes,tenant_id=creds['TenantID'])
     s = acct.schedule()
     cal = s.get_default_calendar()
     if args.remind:
